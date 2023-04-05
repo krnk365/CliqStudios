@@ -11,15 +11,15 @@ headers = {
             }
 
 class GetApi:
-    def contacts(page,pagechunk):
-        url = f"{api_credentials['base_url']}{endpoints['All_contacts']}?page={page}&per_page={pagechunk}&sort=created_at&sort_type=asc&include=sales_activities,owner,creater,updater,source,campaign,tasks,appointments,notes,deals,sales_accounts,territory"
+    def contacts(page,pagechunk,sortBy='created_at',sortType='asc'):
+        url = f"{api_credentials['base_url']}{endpoints['All_contacts']}?page={page}&per_page={pagechunk}&sort={sortBy}&sort_type={sortType}&include=sales_activities,owner,creater,updater,source,campaign,tasks,appointments,notes,deals,sales_accounts,territory"
         req = requests.get(url=url,headers=headers)
         data = json.loads(req.content)
         All_contacts = data['contacts']
         return All_contacts
     
-    def deals(page,pagechunk):
-        url = f"{api_credentials['base_url']}{endpoints['All_deals']}?page={page}&per_page={pagechunk}&sort=created_at&sort_type=asc&include=sales_activities,owner,creater,updater,source,contacts,sales_account,deal_stage,deal_type,deal_reason,campaign,deal_payment_status,deal_product,currency,probability"
+    def deals(page,pagechunk,sortBy='created_at',sortType='asc'):
+        url = f"{api_credentials['base_url']}{endpoints['All_deals']}?page={page}&per_page={pagechunk}&sort={sortBy}&sort_type={sortType}&include=sales_activities,owner,creater,updater,source,contacts,sales_account,deal_stage,deal_type,deal_reason,campaign,deal_payment_status,deal_product,currency,probability"
         req = requests.get(url=url,headers=headers)
         if req.status_code == 200:
             data = json.loads(req.content)
@@ -154,3 +154,30 @@ class GetApi:
                 else:
                     myLogger(level='error',msg=f"JobType:cronjob_recentlyModified Error:{req.status_code}")
             return recentModified_contacts
+        
+    def cronjob_newDeals(pagechunk):
+        recentModified_get_pageCount_url = f"{api_credentials['base_url']}{endpoints['recent_deals']}?&page=1200000&per_page={pagechunk}&sort=updated_at&sort_type=desc"
+        getCount_req = requests.get(url=recentModified_get_pageCount_url,headers=headers)
+        res = json.loads(getCount_req.content)
+        pageCount = res['meta']['total_pages']
+        if pageCount <= 1:
+            url = f"{api_credentials['base_url']}{endpoints['recent_deals']}?page=1&per_page={pagechunk}&include=sales_activities,owner,creater,updater,source,contacts,sales_account,deal_stage,deal_type,deal_reason,campaign,deal_payment_status,deal_product,currency,probability&sort=updated_at&sort_type=desc"
+            req = requests.get(url=url,headers=headers)
+            data = json.loads(req.content)
+            records = data['deals']
+            return records
+        elif pageCount > 1:
+            pageRange = range(1,pageCount+1)
+            recentModified_deals = []
+            for page in pageRange:
+                url = f"{api_credentials['base_url']}{endpoints['recent_deals']}?page={page}&per_page={pagechunk}&include=sales_activities,owner,creater,updater,source,contacts,sales_account,deal_stage,deal_type,deal_reason,campaign,deal_payment_status,deal_product,currency,probability&sort=updated_at&sort_type=desc"
+                req = requests.get(url=url,headers=headers)
+                if req.status_code == 200:
+                    data = json.loads(req.content)
+                    records = data['deals']
+                    for record in records:
+                        recentModified_deals.append(record)
+                    print(f"Page {page} Done | Total Pages : {pageCount}")
+                else:
+                    myLogger(level='error',msg=f"JobType:Recent Deals PageNo:{page} Error:{req.status_code}")
+            return recentModified_deals

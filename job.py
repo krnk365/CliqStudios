@@ -1,5 +1,5 @@
 from Api import GetApi
-from SQLOps import DataImport
+from SQLOps import DataImport, RecycleBin
 import datetime as dt
 from pytz import timezone
 from config import timezones
@@ -66,3 +66,15 @@ class Jobs:
         DataImport.deals_contactsIds(res)
         DataImport.deals_tags(res)
         DataImport.deals_sales_activity_ids(res)
+
+    def deals_cron(pagechunk,cronjob=None,recycleBin=None):
+        if cronjob is True:
+            res = GetApi.cronjob_newDeals(pagechunk=pagechunk)
+            DataImport.deals(res)
+            DataImport.deals_cf(res)
+            DataImport.deals_contactsIds(res)
+            DataImport.deals_tags(res)
+            DataImport.deals_sales_activity_ids(res)
+        elif recycleBin is True:
+            res = GetApi.deals_recyclebin()
+            DataImport.deals_recycleBin(res)
